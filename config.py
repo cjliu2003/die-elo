@@ -1,23 +1,22 @@
 from urllib.parse import urlparse
 
-ENV = "prod"
+ENV = "dev"
 
 if ENV == 'dev':
     DATABASE_CONFIG = {
         'host': "localhost",
-        'database': "babyfoot",
-        'user': "postgres",
-        'password': "**"**
+        'database': "dieDB",
+        'user': "jacklofwall",
+        'password': ""
     }
 else: 
-
-    uri = "****"
+    uri = "*****"
     parsed_uri = urlparse(uri)
 
     DATABASE_CONFIG = {
-        'host': "****",
+        'host': "*****",
         'database': "****",
         'user': "****",
         'password': "****",
-        'port': "****"
+        'port': "5432"
     } 

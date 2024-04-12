@@ -1,18 +1,19 @@
 import psycopg2
 from openpyxl import load_workbook
-from config import DATABASE_CONFIG
+import config
 import math
 import logging
+
 
 # Set up logging to a file
 logging.basicConfig(filename='elo_log.txt', level=logging.DEBUG, format='%(asctime)s %(levelname)s %(message)s')
 
 # Connect to the database
 conn = psycopg2.connect(
-    host=DATABASE_CONFIG['host'],
-    database=DATABASE_CONFIG['database'],
-    user=DATABASE_CONFIG['user'],
-    password=DATABASE_CONFIG['password']
+    host=config.DATABASE_CONFIG['host'],
+    database=config.DATABASE_CONFIG['database'],
+    user=config.DATABASE_CONFIG['user'],
+    password=config.DATABASE_CONFIG['password']
 )
 print("Connected to the database!")
 
@@ -21,7 +22,7 @@ print("Working...")
 cur = conn.cursor()
 
 # Load the workbook
-wb = load_workbook('data.xlsx')
+wb = load_workbook('Fall 23 Die Tourney Data.xlsx')
 
 # Select the active sheet
 ws = wb.active
@@ -181,10 +182,11 @@ def calculate_point_factor(score_difference):
     return 2 + (math.log(score_difference + 1) / math.log(10)) ** 3
 
 # Iterate through the rows of the sheet
-for row in ws.rows:
+for row in ws.iter_rows(min_row=3):
 
     # checking if the rows are not null
     if all(cell.value == None for cell in row):
+        print("no values")
         break
     date = row[0].value
     player1_name = row[1].value
@@ -289,6 +291,7 @@ for row in ws.rows:
     cur.execute("INSERT INTO teamrating (team_match_id, rating, team_rating_timestamp) VALUES (%s, %s, %s)", (team_match1_id, team1_new_rating, date))
     cur.execute("INSERT INTO teamrating (team_match_id, rating, team_rating_timestamp) VALUES (%s, %s, %s)", (team_match2_id, team2_new_rating, date))
     conn.commit()
+    "commited!"
 
 # Close the cursor and connection
 print("Done !")
