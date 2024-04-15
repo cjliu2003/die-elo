@@ -1,7 +1,6 @@
 CREATE TABLE Player (
     player_id serial PRIMARY KEY,
-    first_name VARCHAR(50) NOT NULL,
-    last_name VARCHAR(50) NOT NULL,
+    player_name VARCHAR(50) NOT NULL,
     active BOOLEAN NOT NULL DEFAULT TRUE
 );
 CREATE TABLE Team (

@@ -16,7 +16,7 @@ conn = psycopg2.connect(
 cur = conn.cursor()
 
 # Load the workbook
-wb = load_workbook('Fall 23 Die Tourney Data.xlsx')
+wb = load_workbook('create_uppload _match/Fall 23 Die Tourney Data (1).xlsx')
 
 # Select the active sheet
 ws = wb.active
@@ -46,17 +46,14 @@ for row in ws.iter_rows(min_row=3):
           # Check if the player name is not empty
           if player_name:
             # Check if the player already exists in the Player table
-            first_last = player_name.split()
-            first_name = first_last[0]
-            last_name = first_last[1]
-            cur.execute("SELECT player_id FROM player WHERE first_name=%s AND last_name =%s", (first_name, last_name))
+            cur.execute("SELECT player_id FROM player WHERE player_name=%s", (player_name,))
             player_id = cur.fetchone()
             if player_id is None:
               # If the player does not exist, insert them into the players table with a unique id
               cur.execute("SELECT nextval('player_id_seq')")
               id = cur.fetchone()[0]
               print(id, player_name)
-              cur.execute("INSERT INTO player (player_id, first_name, last_name) VALUES (%s, %s, %s)", (id, first_name, last_name))
+              cur.execute("INSERT INTO player (player_id, player_name) VALUES (%s, %s)", (id, player_name))
               player_id = id
             else:
               # If the player already exists, retrieve their player_id
