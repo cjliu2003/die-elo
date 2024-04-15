@@ -1,18 +1,19 @@
 import psycopg2
 from openpyxl import load_workbook
-from config import DATABASE_CONFIG
+import config
 import math
 import logging
+
 
 # Set up logging to a file
 logging.basicConfig(filename='elo_log.txt', level=logging.DEBUG, format='%(asctime)s %(levelname)s %(message)s')
 
 # Connect to the database
 conn = psycopg2.connect(
-    host=DATABASE_CONFIG['host'],
-    database=DATABASE_CONFIG['database'],
-    user=DATABASE_CONFIG['user'],
-    password=DATABASE_CONFIG['password']
+    host=config.DATABASE_CONFIG['host'],
+    database=config.DATABASE_CONFIG['database'],
+    user=config.DATABASE_CONFIG['user'],
+    password=config.DATABASE_CONFIG['password']
 )
 print("Connected to the database!")
 
@@ -21,7 +22,7 @@ print("Working...")
 cur = conn.cursor()
 
 # Load the workbook
-wb = load_workbook('data.xlsx')
+wb = load_workbook('create_uppload _match/Fall 23 Die Tourney Data (1).xlsx')
 
 # Select the active sheet
 ws = wb.active
@@ -51,16 +52,16 @@ def get_team_match_id_by_timestamp_and_by_team_id(team1_id,team2_id, date, cur):
 
 # Get the player ID of the players playing a match
 def get_player_id(player1_name, player2_name, player3_name, player4_name, cur):
-        cur.execute("SELECT player_id FROM player WHERE first_name=%s", (player1_name,))
+        cur.execute("SELECT player_id FROM player WHERE player_name=%s", (player1_name, ))
         player1_id = cur.fetchone()[0]
 
-        cur.execute("SELECT player_id FROM player WHERE first_name=%s", (player2_name,))
+        cur.execute("SELECT player_id FROM player WHERE player_name=%s", (player2_name, ))
         player2_id = cur.fetchone()[0]
 
-        cur.execute("SELECT player_id FROM player WHERE first_name=%s", (player3_name,))
+        cur.execute("SELECT player_id FROM player WHERE player_name=%s", (player3_name, ))
         player3_id = cur.fetchone()[0]
 
-        cur.execute("SELECT player_id FROM player WHERE first_name=%s", (player4_name,))
+        cur.execute("SELECT player_id FROM player WHERE player_name=%s", (player4_name, ))
         player4_id = cur.fetchone()[0]
 
         # Return a tuple containing all the player IDs
@@ -68,34 +69,28 @@ def get_player_id(player1_name, player2_name, player3_name, player4_name, cur):
 
 # Get the team ID of the teams playing a match
 def insert_team_or_get_team_id(player1_id, player2_id, player3_id, player4_id, cur):
-     # Check if the first team already exists
-        cur.execute("SELECT team_id FROM team WHERE (team_player_1_id=%s AND team_player_2_id=%s) OR (team_player_1_id=%s AND team_player_2_id=%s)", (player1_id, player2_id, player2_id, player1_id))
+        cur.execute("SELECT team_id FROM team WHERE (team_player_1_id=%s AND team_player_2_id=%s)", (player1_id, player2_id))
         team1_id = cur.fetchone()
         if team1_id is None:
-            # If the team does not exist, insert them into the teams table with a unique id
+        # If the team does not exist, insert them into the teams table with a unique id
             cur.execute("SELECT nextval('team_id_seq')")
-            id = cur.fetchone()[0]
-            cur.execute("INSERT INTO team (team_id, team_player_1_id, team_player_2_id) VALUES (%s, %s, %s)", (id, player1_id, player2_id))
-            team1_id = id
+            team1_id = cur.fetchone()[0]
+            cur.execute("INSERT INTO team (team_id, team_player_1_id, team_player_2_id) VALUES (%s, %s, %s)", (team1_id, player1_id, player2_id))
         else:
-            # If the team already exists, retrieve their id
-            team1_id = team1_id[0]
-
-
-        # Check if the second team already exists
-        cur.execute("SELECT team_id FROM team WHERE (team_player_1_id=%s AND team_player_2_id=%s) OR (team_player_1_id=%s AND team_player_2_id=%s)", (player3_id, player4_id, player4_id, player3_id))
+        # If the team already exists, retrieve their id
+            team1_id = team1_id[0]  
+        
+        #Repeat for team 2
+        cur.execute("SELECT team_id FROM team WHERE (team_player_1_id=%s AND team_player_2_id=%s)", (player3_id, player4_id))
         team2_id = cur.fetchone()
         if team2_id is None:
-            # If the team does not exist, insert them into the teams table with a unique id
+        # If the team does not exist, insert them into the teams table with a unique id
             cur.execute("SELECT nextval('team_id_seq')")
-            id = cur.fetchone()[0]
-            cur.execute("INSERT INTO team (team_id, team_player_1_id, team_player_2_id) VALUES (%s, %s, %s)", (id, player3_id, player4_id))
-            team2_id = id
-
+            team2_id = cur.fetchone()[0]
+            cur.execute("INSERT INTO team (team_id, team_player_1_id, team_player_2_id) VALUES (%s, %s, %s)", (team1_id, player3_id, player4_id))
         else:
-            # If the team already exists, retrieve their id
-            team2_id = team2_id[0]
-
+        # If the team already exists, retrieve their id
+            team2_id = team2_id[0] 
         # Return the team player IDs as a tuple
         return (team1_id, team2_id)         
 
@@ -181,10 +176,11 @@ def calculate_point_factor(score_difference):
     return 2 + (math.log(score_difference + 1) / math.log(10)) ** 3
 
 # Iterate through the rows of the sheet
-for row in ws.rows:
+for row in ws.iter_rows(min_row=3):
 
     # checking if the rows are not null
     if all(cell.value == None for cell in row):
+        print("no values")
         break
     date = row[0].value
     player1_name = row[1].value
@@ -281,7 +277,7 @@ for row in ws.rows:
     # Update the database with the player ratings
     cur.execute("INSERT INTO playerrating (player_match_id, rating, player_rating_timestamp) VALUES (%s, %s, %s)", (player_match1_id, player1_new_rating, date))
     cur.execute("INSERT INTO playerrating (player_match_id, rating, player_rating_timestamp) VALUES ( %s, %s, %s)", (player_match2_id, player2_new_rating, date))
-    cur.execute("INSERT INTO playerrating (player_match_id,rating, player_rating_timestamp) VALUES (%s, %s, %s)", (player_match3_id,player3_new_rating, date))
+    cur.execute("INSERT INTO playerrating (player_match_id,rating, player_rating_timestamp) VALUES (%s, %s, %s)", (player_match3_id, player3_new_rating, date))
     cur.execute("INSERT INTO playerrating (player_match_id, rating, player_rating_timestamp) VALUES (%s, %s, %s)", (player_match4_id, player4_new_rating, date))
     conn.commit()
 
@@ -289,6 +285,7 @@ for row in ws.rows:
     cur.execute("INSERT INTO teamrating (team_match_id, rating, team_rating_timestamp) VALUES (%s, %s, %s)", (team_match1_id, team1_new_rating, date))
     cur.execute("INSERT INTO teamrating (team_match_id, rating, team_rating_timestamp) VALUES (%s, %s, %s)", (team_match2_id, team2_new_rating, date))
     conn.commit()
+    "commited!"
 
 # Close the cursor and connection
 print("Done !")
