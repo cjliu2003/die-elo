@@ -120,6 +120,25 @@ def number_of_games_team(team1_id, team2_id,date, cur):
      # Return the number of games played by each team as a tuple
     return (number_of_game_team_1, number_of_game_team_2)
              
+def get_player_ratings_v2(player1_id, player2_id, player3_id, player4_id, cur): 
+    cur.execute("SELECT player_rating FROM player WHERE player_id = %s;", (player1_id,))
+    result = cur.fetchone()
+    player1_rating = result[0]
+    
+    cur.execute("SELECT player_rating FROM player WHERE player_id = %s;", (player2_id,))
+    result = cur.fetchone()
+    player2_rating = result[0]
+   
+    cur.execute("SELECT player_rating FROM player WHERE player_id = %s;", (player3_id,))
+    result = cur.fetchone()
+    player3_rating = result[0]
+   
+    cur.execute("SELECT player_rating FROM player WHERE player_id = %s;", (player4_id,))
+    result = cur.fetchone()
+    player4_rating = result[0]
+
+    return player1_rating, player2_rating, player3_rating, player4_rating
+
 def get_player_ratings(player1_id, player2_id, player3_id, player4_id, cur):
     cur.execute("SELECT rating, player_rating_timestamp FROM playerrating WHERE player_match_id IN (SELECT player_match_id FROM playermatch WHERE player_id = %s) ORDER BY player_rating_timestamp DESC LIMIT 1;", (player1_id,))
 
@@ -203,7 +222,9 @@ for row in ws.iter_rows(min_row=3):
     number_of_games_team1, number_of_games_team2 = number_of_games_team(team1_id, team2_id, date, cur)
 
     # Call the get_player_ratings function inside the loop
-    player1_rating, player2_rating, player3_rating, player4_rating = get_player_ratings(player1_id, player2_id, player3_id, player4_id, cur)
+    #player1_rating, player2_rating, player3_rating, player4_rating = get_player_ratings(player1_id, player2_id, player3_id, player4_id, cur)
+    player1_rating, player2_rating, player3_rating, player4_rating = get_player_ratings_v2(player1_id, player2_id, player3_id, player4_id, cur)
+
 
     # Call the get_teams_ratings function inside the loop
     team1_rating, team2_rating = get_team_ratings(team1_id, team2_id, cur)
@@ -279,6 +300,12 @@ for row in ws.iter_rows(min_row=3):
     cur.execute("INSERT INTO playerrating (player_match_id, rating, player_rating_timestamp) VALUES ( %s, %s, %s)", (player_match2_id, player2_new_rating, date))
     cur.execute("INSERT INTO playerrating (player_match_id,rating, player_rating_timestamp) VALUES (%s, %s, %s)", (player_match3_id, player3_new_rating, date))
     cur.execute("INSERT INTO playerrating (player_match_id, rating, player_rating_timestamp) VALUES (%s, %s, %s)", (player_match4_id, player4_new_rating, date))
+    conn.commit()
+
+    cur.execute("UPDATE Player SET player_rating = %s WHERE player_id = %s;", (player1_new_rating, player1_id))
+    cur.execute("UPDATE Player SET player_rating = %s WHERE player_id = %s;", (player2_new_rating, player2_id))
+    cur.execute("UPDATE Player SET player_rating = %s WHERE player_id = %s;", (player3_new_rating, player3_id))
+    cur.execute("UPDATE Player SET player_rating = %s WHERE player_id = %s;", (player4_new_rating, player4_id))
     conn.commit()
 
     # Update the database with the team ratings

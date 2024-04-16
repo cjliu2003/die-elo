@@ -133,38 +133,22 @@ def number_of_games_team(team1_id, team2_id,date, cur):
      # Return the number of games played by each team as a tuple
     return (number_of_game_team_1, number_of_game_team_2)
              
-def get_player_ratings(player1_id, player2_id, player3_id, player4_id, cur):
-    cur.execute("SELECT rating, player_rating_timestamp FROM playerrating WHERE player_match_id IN (SELECT player_match_id FROM playermatch WHERE player_id = %s) ORDER BY player_rating_timestamp DESC LIMIT 1;", (player1_id,))
-
+def get_player_ratings_v2(player1_id, player2_id, player3_id, player4_id, cur): 
+    cur.execute("SELECT player_rating FROM player WHERE player_id = %s;", (player1_id,))
     result = cur.fetchone()
-    if result is not None:
-        player1_rating = result[0]
-    else:
-     player1_rating = 1500
-
-
-    cur.execute("SELECT rating, player_rating_timestamp FROM playerrating WHERE player_match_id IN (SELECT player_match_id FROM playermatch WHERE player_id = %s) ORDER BY player_rating_timestamp DESC LIMIT 1;", (player2_id,))
-    result = cur.fetchone()
-    if result is not None:
-        player2_rating = result[0]
-    else:
-     player2_rating = 1500
-
-    cur.execute("SELECT rating, player_rating_timestamp FROM playerrating WHERE player_match_id IN (SELECT player_match_id FROM playermatch WHERE player_id = %s) ORDER BY player_rating_timestamp DESC LIMIT 1;", (player3_id,))
-    result = cur.fetchone()
-   
-    if result is not None:
-        player3_rating = result[0]
-    else:
-     player3_rating = 1500
+    player1_rating = result[0]
     
-
-    cur.execute("SELECT rating, player_rating_timestamp FROM playerrating WHERE player_match_id IN (SELECT player_match_id FROM playermatch WHERE player_id = %s) ORDER BY player_rating_timestamp DESC LIMIT 1;", (player4_id,))
+    cur.execute("SELECT player_rating FROM player WHERE player_id = %s;", (player2_id,))
     result = cur.fetchone()
-    if result is not None:
-        player4_rating = result[0]
-    else:
-        player4_rating = 1500   
+    player2_rating = result[0]
+   
+    cur.execute("SELECT player_rating FROM player WHERE player_id = %s;", (player3_id,))
+    result = cur.fetchone()
+    player3_rating = result[0]
+   
+    cur.execute("SELECT rating FROM player WHERE player_id = %s;", (player4_id,))
+    result = cur.fetchone()
+    player4_rating = result[0]
 
     return player1_rating, player2_rating, player3_rating, player4_rating
 
@@ -195,15 +179,10 @@ def calculate_point_factor(score_difference):
 
 def process_game_data(player1_name, player2_name, team1_score, player3_name, player4_name, team2_score,date):
     # Connect to the database
-    conn = psycopg2.connect(
-        host=DATABASE_CONFIG['host'],
-        database=DATABASE_CONFIG['database'],
-        user=DATABASE_CONFIG['user'],
-        password=DATABASE_CONFIG['password']
-    )
+    conn = psycopg2.connect(**DATABASE_CONFIG)
 
     print("date is",date)
-    
+
     # Create a cursor
     cur = conn.cursor()
 
@@ -367,7 +346,9 @@ def process_game_data(player1_name, player2_name, team1_score, player3_name, pla
     number_of_games_team1, number_of_games_team2 = number_of_games_team(team1_id, team2_id, date, cur)
 
     # Call the get_player_ratings function inside the loop
-    player1_rating, player2_rating, player3_rating, player4_rating = get_player_ratings(player1_id, player2_id, player3_id, player4_id, cur)
+    #player1_rating, player2_rating, player3_rating, player4_rating = get_player_ratings(player1_id, player2_id, player3_id, player4_id, cur)
+    player1_rating, player2_rating, player3_rating, player4_rating = get_player_ratings_v2(player1_id, player2_id, player3_id, player4_id, cur)
+
 
     # Call the get_teams_ratings function inside the loop
     team1_rating, team2_rating = get_team_ratings(team1_id, team2_id, cur)
@@ -462,6 +443,12 @@ def process_game_data(player1_name, player2_name, team1_score, player3_name, pla
     print("Inserting player rating for player 4 with match ID", player_match4_id, "and new rating", player4_new_rating)
     cur.execute("INSERT INTO playerrating (player_match_id, rating, player_rating_timestamp) VALUES (%s, %s, %s)", (player_match4_id, player4_new_rating, date))
 
+   
+    cur.execute("UPDATE Player SET player_rating = %s WHERE player_id = %s;", (player1_new_rating, player1_id))
+    cur.execute("UPDATE Player SET player_rating = %s WHERE player_id = %s;", (player2_new_rating, player2_id))
+    cur.execute("UPDATE Player SET player_rating = %s WHERE player_id = %s;", (player3_new_rating, player3_id))
+    cur.execute("UPDATE Player SET player_rating = %s WHERE player_id = %s;", (player4_new_rating, player4_id))
+
     conn.commit()
 
     # Update the database with the team ratings
@@ -474,14 +461,8 @@ def process_game_data(player1_name, player2_name, team1_score, player3_name, pla
 # Get the exptected score for odds   
 def calculate_expected_score(player1_name, player2_name, player3_name, player4_name,):
    # Connect to the database
-    conn = psycopg2.connect(
-        host=DATABASE_CONFIG['host'],
-        database=DATABASE_CONFIG['database'],
-        user=DATABASE_CONFIG['user'],
-        password=DATABASE_CONFIG['password']
-    )
+    conn = psycopg2.connect(**DATABASE_CONFIG)
 
-    
     # Create a cursor
     cur = conn.cursor()
 
@@ -490,7 +471,9 @@ def calculate_expected_score(player1_name, player2_name, player3_name, player4_n
     player1_id, player2_id, player3_id, player4_id = get_player_id(player1_name, player2_name, player3_name, player4_name, cur)
 
   # Call the get_player_ratings function inside the loop
-    player1_rating, player2_rating, player3_rating, player4_rating = get_player_ratings(player1_id, player2_id, player3_id, player4_id, cur)
+    #player1_rating, player2_rating, player3_rating, player4_rating = get_player_ratings(player1_id, player2_id, player3_id, player4_id, cur)
+    player1_rating, player2_rating, player3_rating, player4_rating = get_player_ratings_v2(player1_id, player2_id, player3_id, player4_id, cur)
+
 
  # Calculate the expected scores for the players
     player1_expected_score_against_player3 = 1 / (1 + 10**((player3_rating - player1_rating) / 500))
@@ -531,12 +514,7 @@ def calculate_expected_score(player1_name, player2_name, player3_name, player4_n
 # Get the players from the database
 def get_players():
     try:
-        conn = psycopg2.connect(
-            host=DATABASE_CONFIG['host'],
-            database=DATABASE_CONFIG['database'],
-            user=DATABASE_CONFIG['user'],
-            password=DATABASE_CONFIG['password']
-        )
+        conn = psycopg2.connect(**DATABASE_CONFIG)
         cursor = conn.cursor()
         query = "SELECT player_name FROM player WHERE active = true ORDER BY player_name ASC;"  # 
         cursor.execute(query)
@@ -572,58 +550,14 @@ def get_players_detailed_list():
     return players_full
 
 
-def get_latest_player_ratings(month=None, year=None):
-    now = datetime.now()
-    default_month = now.month
-    default_year = now.year
-    selected_year = int(year) if year else default_year
-    selected_month = int(month) if month else default_month
-    start_date = f'{selected_year}-{selected_month:02d}-01 00:00:00'
-    end_date = f'{selected_year}-{selected_month:02d}-{get_last_day_of_month(selected_month, selected_year):02d} 23:59:59'
-
+def get_latest_player_ratings_v2(): 
     query = '''
-        WITH max_player_rating_timestamp AS (
-            SELECT 
-                pm.player_id,
-                MAX(pr.player_rating_timestamp) as max_timestamp
-            FROM PlayerMatch pm
-            JOIN PlayerRating pr ON pm.player_match_id = pr.player_match_id
-            WHERE pr.player_rating_timestamp BETWEEN %s AND %s
-            GROUP BY pm.player_id
-        ),
-        filtered_player_match AS (
-            SELECT 
-                pm.player_id,
-                pm.match_id
-            FROM PlayerMatch pm
-            JOIN max_player_rating_timestamp mprt ON pm.player_id = mprt.player_id
-        ),
-        filtered_matches AS (
-            SELECT match_id
-            FROM Match
-            WHERE match_timestamp BETWEEN %s AND %s
-        )
-        SELECT 
-            player_name, 
-            pr.rating, 
-            COUNT(DISTINCT fpm.match_id) as num_matches,
-            pr.player_rating_timestamp
-        FROM Player p
-        JOIN max_player_rating_timestamp mprt ON p.player_id = mprt.player_id
-        JOIN PlayerMatch pm ON p.player_id = pm.player_id
-        JOIN PlayerRating pr ON pm.player_match_id = pr.player_match_id
-            AND pr.player_rating_timestamp = mprt.max_timestamp
-        JOIN filtered_player_match fpm ON p.player_id = fpm.player_id
-        JOIN filtered_matches fm ON fpm.match_id = fm.match_id
-        GROUP BY p.player_id, pr.rating, pr.player_rating_timestamp
-        ORDER BY pr.rating DESC;
+        SELECT player_name, player_rating FROM player;
     '''
-
     with psycopg2.connect(**DATABASE_CONFIG) as conn:
         cur = conn.cursor()
-        cur.execute(query, (start_date, end_date, start_date, end_date))
+        cur.execute(query)
         player_ratings = cur.fetchall()
-
 
     return player_ratings
 
@@ -804,7 +738,8 @@ def calculate_expected_score_route():
 def rating():
     month = request.args.get('month', datetime.now().strftime('%m'))
     year = request.args.get('year', datetime.now().strftime('%Y'))
-    player_ratings = get_latest_player_ratings(month=month, year=year)
+    #player_ratings = get_latest_player_ratings(month=month, year=year)
+    player_ratings = get_latest_player_ratings_v2()
     now = datetime.now()
     return render_template('rating.html', player_ratings=player_ratings, month=month, year=year, now=now)
 
@@ -900,12 +835,7 @@ def do_more():
     return render_template('do_more.html')
 
 def get_player_id_metrics(player_name):
-    conn = psycopg2.connect(
-        host=DATABASE_CONFIG['host'],
-        database=DATABASE_CONFIG['database'],
-        user=DATABASE_CONFIG['user'],
-        password=DATABASE_CONFIG['password']
-    )
+    conn = psycopg2.connect(**DATABASE_CONFIG)
     cur = conn.cursor()
 
     cur.execute("SELECT player_id FROM player WHERE player_name=%s", (player_name,))
@@ -924,12 +854,7 @@ def player_stats_route():
         player_id = get_player_id_metrics(player_name) 
         
         # Query the database to get the player stats
-        conn = psycopg2.connect(
-            host=DATABASE_CONFIG['host'],
-            database=DATABASE_CONFIG['database'],
-            user=DATABASE_CONFIG['user'],
-            password=DATABASE_CONFIG['password']
-        )
+        conn = psycopg2.connect(**DATABASE_CONFIG)
         cur = conn.cursor()
 
         # Total number of games played by the player

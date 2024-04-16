@@ -61,8 +61,6 @@
             <th>Rank</th>
             <th>Name</th>
             <th>Rating</th>
-            <th>Games</th>
-            <th>Last Game</th>
         </tr>
     </thead>
     <tbody>
@@ -83,8 +81,6 @@
                 </td>
                 <td>{{ player[0] }}</td>
                 <td>{{ player[1] }}</td>
-                <td style="text-align: center;">{{ player[2] }}</td>
-                <td>{{ player[3].strftime('%d-%m-%y %H:%M') }}</td>
             </tr>
 
         {% endfor %}

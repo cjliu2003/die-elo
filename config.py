@@ -1,6 +1,6 @@
 from urllib.parse import urlparse
 
-ENV = "dev"
+ENV = "prod"
 
 if ENV == 'dev':
     DATABASE_CONFIG = {
@@ -10,13 +10,13 @@ if ENV == 'dev':
         'password': ""
     }
 else: 
-    uri = "*****"
-    parsed_uri = urlparse(uri)
-
+    #uri = "postgresql://jlofwall:Q4#ruxug@toss-db-id.c9oc0e2aqo0j.us-east-2.rds.amazonaws.com:5432/dieDB"
+    #parsed_uri = urlparse(uri)
+    #print(parsed_uri)
     DATABASE_CONFIG = {
-        'host': "*****",
-        'database': "****",
-        'user': "****",
-        'password': "****",
+        'host': "toss-db-id.c9oc0e2aqo0j.us-east-2.rds.amazonaws.com",
+        'database': "dieDB",
+        'user': "jlofwall",
+        'password': "Q4#ruxug",
         'port': "5432"
     } 
